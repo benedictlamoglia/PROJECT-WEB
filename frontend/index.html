@@ -1,0 +1,479 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0e2a42">
+  <meta name="description" content="CampusPass — a clearer way to schedule your enrollment campus visit.">
+  <title>CampusPass — Enrollment scheduling</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="announcement">
+    <span class="announcement-dot"></span>
+    STUDENT SERVICES
+    <span class="announcement-separator">/</span>
+    ENROLLMENT SCHEDULING PORTAL
+  </div>
+
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="logo" href="#top" aria-label="CampusPass home">
+        <span class="logo-mark" aria-hidden="true">C<span>•</span></span>
+        <span class="logo-type">
+          campus<span>pass</span>
+          <small>STUDENT ACCESS</small>
+        </span>
+      </a>
+      <nav class="header-nav" aria-label="Main navigation">
+        <a class="text-nav" href="#how-it-works">The process</a>
+        <a class="nav-cta" href="#registration">
+          Start application <span aria-hidden="true">↗</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- HERO -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <div class="hero-kicker">
+            <span class="kicker-line"></span>
+            A BETTER FIRST STEP
+          </div>
+          <h1 id="hero-title">
+            A campus visit,<br>
+            <em>without the</em><br>
+            <span>guesswork.</span>
+          </h1>
+          <p class="hero-lead">
+            Skip the back-and-forth. Share your details,
+            choose a preferred visit schedule, and get a
+            reference code in one straightforward flow.
+          </p>
+          <div class="hero-actions">
+            <a href="#registration" class="button button-dark">
+              Begin registration <span aria-hidden="true">↗</span>
+            </a>
+            <a href="#how-it-works" class="inline-link">
+              See how it works <span aria-hidden="true">↘</span>
+            </a>
+          </div>
+          <div class="hero-footnote">
+            <span class="footnote-line"></span>
+            DESIGNED FOR SENIOR HIGH &amp; COLLEGE STUDENTS
+          </div>
+        </div>
+
+        <!-- CSS 3D STUDENT PASS -->
+        <div class="hero-visual" aria-label="Illustration of a three-dimensional CampusPass student visit pass">
+          <div class="visual-grid" aria-hidden="true"></div>
+          <div class="visual-orbit orbit-one" aria-hidden="true"></div>
+          <div class="visual-orbit orbit-two" aria-hidden="true"></div>
+
+          <div class="scene" id="pass-scene">
+            <div class="pass-back pass-back-two" aria-hidden="true"></div>
+            <div class="pass-back pass-back-one" aria-hidden="true"></div>
+
+            <div class="pass-face">
+              <div class="pass-heading">
+                <span class="pass-mini-logo">C<span>•</span></span>
+                <span>STUDENT<br>VISIT PASS</span>
+                <span class="pass-number">NO. 001</span>
+              </div>
+
+              <div class="pass-center">
+                <div class="pass-emblem" aria-hidden="true">
+                  <svg viewBox="0 0 90 90" fill="none" aria-hidden="true">
+                    <path d="m10 32 35-17 35 17-35 17-35-17Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+                    <path d="M24 39v20c0 9 42 9 42 0V39" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+                    <path d="M80 33v23" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    <circle cx="80" cy="61" r="4" fill="currentColor"/>
+                  </svg>
+                </div>
+                <strong>Your place<br>starts here.</strong>
+              </div>
+
+              <div class="pass-bottom">
+                <span>NAME<br><b>YOUR NAME</b></span>
+                <span>VISIT DATE<br><b>TO BE SELECTED</b></span>
+              </div>
+
+              <div class="pass-barcode" aria-hidden="true"></div>
+              <span class="pass-edge-label">
+                CAMPUSPASS / ENROLLMENT ACCESS
+              </span>
+            </div>
+          </div>
+
+          <span class="visual-stamp stamp-top">
+            01 / 03 <span>STEPS</span>
+          </span>
+          <span class="visual-stamp stamp-bottom">
+            A SMOOTHER<br>WAY IN <span aria-hidden="true">✳</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how-it-works" class="process-strip" aria-labelledby="process-title">
+      <div class="shell process-inner">
+        <div class="process-intro">
+          <span class="eyebrow">THE PROCESS</span>
+          <h2 id="process-title">Three steps.<br><em>That's it.</em></h2>
+        </div>
+
+        <div class="process-item">
+          <span class="process-num">01</span>
+          <strong>Tell us about you</strong>
+          <p>Personal and education details.</p>
+        </div>
+        <div class="process-item">
+          <span class="process-num">02</span>
+          <strong>Pick your schedule</strong>
+          <p>Choose a weekday and time.</p>
+        </div>
+        <div class="process-item">
+          <span class="process-num">03</span>
+          <strong>Review &amp; submit</strong>
+          <p>Receive your server-generated code.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- REGISTRATION -->
+    <section id="registration" class="registration" aria-labelledby="registration-title">
+      <div class="shell">
+        <div class="registration-heading">
+          <div>
+            <span class="eyebrow">ENROLLMENT / REGISTRATION</span>
+            <h2 id="registration-title">Let's get you <em>started.</em></h2>
+          </div>
+          <p>A few details, one simple process.<br>Fields marked * are required.</p>
+        </div>
+
+        <div class="registration-frame">
+          <!-- SIDEBAR -->
+          <aside class="wizard-aside" aria-label="Application progress">
+            <span class="aside-eyebrow">YOUR APPLICATION</span>
+            <h3>One step<br>at a time<span>.</span></h3>
+
+            <ol class="step-list">
+              <li data-step-indicator="1" class="is-active" aria-current="step">
+                <span class="step-circle">01</span>
+                <span>
+                  <strong>About you</strong>
+                  <small>Student information</small>
+                </span>
+              </li>
+              <li data-step-indicator="2">
+                <span class="step-circle">02</span>
+                <span>
+                  <strong>Your visit</strong>
+                  <small>Date and time</small>
+                </span>
+              </li>
+              <li data-step-indicator="3">
+                <span class="step-circle">03</span>
+                <span>
+                  <strong>Final check</strong>
+                  <small>Review and submit</small>
+                </span>
+              </li>
+            </ol>
+
+            <div class="aside-footer">
+              <span class="aside-spark" aria-hidden="true">✳</span>
+              <p>Made for a smoother<br>campus experience.</p>
+            </div>
+          </aside>
+
+          <!-- FORM -->
+          <div class="form-panel">
+            <div class="progress-top">
+              <span id="step-counter">STEP 01 OF 03</span>
+              <span id="step-description">Student details</span>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+              <span id="progress-fill"></span>
+            </div>
+
+            <form id="enrollment-form" novalidate>
+              <!-- STEP 1 -->
+              <section id="step-1" class="form-step" aria-labelledby="step-1-title">
+                <div class="step-heading">
+                  <span class="step-heading-label">01 / INTRODUCTION</span>
+                  <h3 id="step-1-title">First, the <em>basics.</em></h3>
+                  <p>Enter your details exactly as you want them to appear in your application.</p>
+                </div>
+
+                <div class="form-section-title">
+                  <span>PERSONAL DETAILS</span>
+                  <span>01 — A</span>
+                </div>
+
+                <div class="field-grid grid-three">
+                  <div class="field">
+                    <label for="firstName">First name <span class="required">*</span></label>
+                    <input id="firstName" name="firstName" type="text" autocomplete="given-name" maxlength="60" placeholder="e.g. Juan" required>
+                  </div>
+
+                  <div class="field">
+                    <label for="middleName">Middle name <span class="optional">Optional</span></label>
+                    <input id="middleName" name="middleName" type="text" autocomplete="additional-name" maxlength="60" placeholder="e.g. Santos">
+                  </div>
+
+                  <div class="field">
+                    <label for="lastName">Last name <span class="required">*</span></label>
+                    <input id="lastName" name="lastName" type="text" autocomplete="family-name" maxlength="60" placeholder="e.g. Dela Cruz" required>
+                  </div>
+                </div>
+
+                <div class="field-grid grid-two space-top">
+                  <div class="field">
+                    <label for="email">Email address <span class="required">*</span></label>
+                    <input id="email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required>
+                  </div>
+                  <div class="field">
+                    <label for="mobile">Mobile number <span class="required">*</span></label>
+                    <input id="mobile" name="mobile" type="tel" autocomplete="tel" inputmode="tel" placeholder="09XXXXXXXXX" pattern="(?:09[0-9]{9}|\+639[0-9]{9})" title="Use 09 followed by 9 digits or +639 followed by 9 digits" required>
+                  </div>
+                </div>
+
+                <div class="form-section-title space-section">
+                  <span>ENROLLMENT DETAILS</span>
+                  <span>01 — B</span>
+                </div>
+
+                <div class="field education-primary">
+                  <label for="educationLevel">Education level <span class="required">*</span></label>
+                  <select id="educationLevel" name="educationLevel" required>
+                    <option value="">Select education level</option>
+                    <option value="Senior High School">Senior High School</option>
+                    <option value="College">College</option>
+                  </select>
+                </div>
+
+                <!-- SENIOR HIGH FIELDS -->
+                <div id="seniorHighFields" class="conditional-fields" hidden>
+                  <div class="field-grid grid-two">
+                    <div class="field">
+                      <label for="gradeLevel">Grade level <span class="required">*</span></label>
+                      <select id="gradeLevel" name="gradeLevel" disabled>
+                        <option value="">Select grade</option>
+                        <option value="Grade 11">Grade 11</option>
+                        <option value="Grade 12">Grade 12</option>
+                      </select>
+                    </div>
+
+                    <div class="field">
+                      <label for="strand">Strand <span class="required">*</span></label>
+                      <select id="strand" name="strand" disabled>
+                        <option value="">Select strand</option>
+                        <option value="STEM">STEM</option>
+                        <option value="ICT">ICT</option>
+                        <option value="ABM">ABM</option>
+                        <option value="HUMMS">HUMMS</option>
+                        <option value="GAS">GAS</option>
+                        <option value="TOURISM OPERATION">TOURISM OPERATION</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- COLLEGE FIELDS -->
+                <div id="collegeFields" class="conditional-fields" hidden>
+                  <div class="field college-program">
+                    <label for="program">College program <span class="required">*</span></label>
+                    <select id="program" name="program" disabled>
+                      <option value="">Select a program</option>
+                      <option value="BSIT">BSIT</option>
+                      <option value="BSCS">BSCS</option>
+                      <option value="TOURISM">TOURISM</option>
+                      <option value="BSBA">BSBA</option>
+                      <option value="BS PSYCHOLOGY">BS PSYCHOLOGY</option>
+                    </select>
+                  </div>
+                </div>
+
+                <fieldset class="enrollment-type">
+                  <legend>Enrollment type <span class="required">*</span></legend>
+                  <div class="radio-options">
+                    <label>
+                      <input type="radio" name="studentType" value="New student" checked required>
+                      <span>New student</span>
+                    </label>
+                    <label>
+                      <input type="radio" name="studentType" value="Transferee">
+                      <span>Transferee</span>
+                    </label>
+                    <label>
+                      <input type="radio" name="studentType" value="Returning">
+                      <span>Returning</span>
+                    </label>
+                  </div>
+                </fieldset>
+              </section>
+
+              <!-- STEP 2 -->
+              <section id="step-2" class="form-step" aria-labelledby="step-2-title" hidden>
+                <div class="step-heading">
+                  <span class="step-heading-label">02 / YOUR VISIT</span>
+                  <h3 id="step-2-title">Pick a <em>day.</em></h3>
+                  <p>Choose the date and time you'd prefer to visit campus.</p>
+                </div>
+
+                <div class="form-section-title">
+                  <span>SCHEDULE DETAILS</span>
+                  <span>02 — A</span>
+                </div>
+
+                <div class="field-grid grid-two">
+                  <div class="field">
+                    <label for="visitDate">Preferred date <span class="required">*</span></label>
+                    <input id="visitDate" name="visitDate" type="date" required>
+                  </div>
+                  <div class="field">
+                    <label for="timeSlot">Preferred time <span class="required">*</span></label>
+                    <select id="timeSlot" name="timeSlot" required>
+                      <option value="">Select a time</option>
+                      <option value="8:00 AM – 9:00 AM">8:00 AM – 9:00 AM</option>
+                      <option value="9:00 AM – 10:00 AM">9:00 AM – 10:00 AM</option>
+                      <option value="10:00 AM – 11:00 AM">10:00 AM – 11:00 AM</option>
+                      <option value="1:00 PM – 2:00 PM">1:00 PM – 2:00 PM</option>
+                      <option value="2:00 PM – 3:00 PM">2:00 PM – 3:00 PM</option>
+                      <option value="3:00 PM – 4:00 PM">3:00 PM – 4:00 PM</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="field space-top">
+                  <label for="notes">Anything we should know? <span class="optional">Optional</span></label>
+                  <textarea id="notes" name="notes" rows="4" maxlength="300" placeholder="Add a note for the school, if needed..."></textarea>
+                </div>
+
+                <div class="info-note">
+                  <span class="info-note-icon" aria-hidden="true">i</span>
+                  <p>
+                    Weekdays only, Monday through Friday.
+                    Available slots and capacity need to be verified
+                    by the backend once schedule storage is connected.
+                  </p>
+                </div>
+              </section>
+
+              <!-- STEP 3 -->
+              <section id="step-3" class="form-step" aria-labelledby="step-3-title" hidden>
+                <div class="step-heading">
+                  <span class="step-heading-label">03 / FINAL CHECK</span>
+                  <h3 id="step-3-title">Looking <em>good?</em></h3>
+                  <p>Review your details before sending them to the enrollment server.</p>
+                </div>
+
+                <div class="review-wrapper">
+                  <div class="review-top">
+                    <span>APPLICATION SUMMARY</span>
+                    <span>03 / 03</span>
+                  </div>
+                  <dl id="review-list"></dl>
+                </div>
+
+                <label class="consent">
+                  <input type="checkbox" id="demoConsent" name="demoConsent">
+                  <span>
+                    I confirm that the details above are accurate.
+                    <small>
+                      This is a development prototype; the current API generates a
+                      reference but does not yet guarantee a saved booking.
+                    </small>
+                  </span>
+                </label>
+              </section>
+
+              <p class="form-error" id="form-error" role="alert" hidden></p>
+
+              <div class="form-actions">
+                <button id="back-button" class="button button-outline" type="button" hidden>
+                  <span aria-hidden="true">←</span> Back
+                </button>
+                <button id="next-button" class="button button-dark" type="button">
+                  Continue <span aria-hidden="true">↗</span>
+                </button>
+                <button id="submit-button" class="button button-dark" type="submit" hidden>
+                  Get reference <span aria-hidden="true">↗</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="bottom-caption">
+          <span>STUDENT-FIRST BY DESIGN.</span>
+          <span>NO LOGIN REQUIRED FOR THIS PROTOTYPE.</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-inner">
+      <span class="footer-brand">campus<span>pass</span><i>•</i></span>
+      <p>Small steps. Big beginnings.</p>
+      <span>STUDENT SERVICES / 2026</span>
+    </div>
+  </footer>
+
+  <!-- SUCCESS DIALOG -->
+  <dialog class="success-dialog" id="success-dialog" aria-labelledby="success-title">
+    <div class="modal-inner">
+      <div class="modal-icon" aria-hidden="true">✓</div>
+      <span class="eyebrow">REFERENCE CREATED</span>
+      <h2 id="success-title">You're one step <em>closer.</em></h2>
+      <p class="modal-intro">
+        The enrollment server returned this reference code.
+        Keep it for your records.
+      </p>
+
+      <div class="reference-block">
+        <span>YOUR REFERENCE</span>
+        <div>
+          <strong id="generated-code">REF-XXXXXXXXXXXX</strong>
+          <button id="copy-code" type="button">Copy</button>
+        </div>
+      </div>
+
+      <dl class="receipt">
+        <div>
+          <dt>Student</dt>
+          <dd id="receipt-name"></dd>
+        </div>
+        <div>
+          <dt>Education</dt>
+          <dd id="receipt-grade"></dd>
+        </div>
+        <div>
+          <dt>Preferred visit</dt>
+          <dd id="receipt-schedule"></dd>
+        </div>
+      </dl>
+
+      <p class="modal-disclaimer">
+        Prototype notice: a reference code does not yet mean
+        the appointment was saved or confirmed in Supabase.
+      </p>
+
+      <button class="button button-dark modal-restart" type="button" id="restart-button">
+        Create another request <span aria-hidden="true">↗</span>
+      </button>
+    </div>
+  </dialog>
+</body>
+</html>
