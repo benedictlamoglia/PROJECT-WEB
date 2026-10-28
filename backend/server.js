@@ -24,35 +24,12 @@ const __dirname = path.dirname(__filename);
 const frontendPath = path.join(__dirname, "../frontend");
 
 // ======================================
-// 2. REQUEST LOGGING MIDDLEWARE
-// ======================================
-
-app.use((req, res, next) => {
-  const start = Date.now();
-
-  console.log(
-    `[INCOMING] ${req.method} ${req.originalUrl}`
-  );
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-
-    console.log(
-      `[RESPONSE] ${req.method} ${req.originalUrl} | ` +
-      `Status: ${res.statusCode} | ${duration}ms`
-    );
-  });
-
-  next();
-});
-
-// ======================================
-// 3. CORS CONFIGURATION
+// 2. CORS CONFIGURATION
 // ======================================
 
 const allowedOrigins = [
   "https://webproject-ebon-nine.vercel.app",
-  process.env.FRONTEND_ORIGIN,
+  process.env.FRONTEND_ORIGIN?.trim(),
   "http://localhost:5500",
   "http://127.0.0.1:5500",
   "http://localhost:1000",
@@ -67,22 +44,83 @@ app.use(cors({
 }));
 
 // ======================================
-// 4. JSON MIDDLEWARE
+// 3. MIDDLEWARE
 // ======================================
 
 app.use(express.json({ limit: "20kb" }));
 
+// Log every incoming request
+app.use((req, res, next) => {
+
+  const start = Date.now();
+
+  console.log(
+    `[INCOMING] ${req.method} ${req.originalUrl}`
+  );
+
+  res.on("finish", () => {
+
+    const duration = Date.now() - start;
+
+    console.log(
+      `[RESPONSE] ${req.method} ${req.originalUrl}`
+    );
+
+    console.log(
+      `Status: ${res.statusCode} | Duration: ${duration}ms`
+    );
+
+  });
+
+  next();
+
+});
+
 // ======================================
-// 5. HEALTH CHECK
+// 4. HEALTH CHECK
 // ======================================
 
 app.get("/api/health", (req, res) => {
+
   return res.status(200).json({
     status: "online",
     message: "CampusPass API is running!",
     timestamp: new Date().toISOString()
   });
+
 });
+
+// ======================================
+// 5. VALIDATION CONFIGURATION
+// ======================================
+
+const seniorHighGrades = [
+  "Grade 11",
+  "Grade 12"
+];
+
+const seniorHighStrands = [
+  "STEM",
+  "ICT",
+  "ABM",
+  "HUMMS",
+  "GAS",
+  "TOURISM OPERATION"
+];
+
+const collegePrograms = [
+  "BSIT",
+  "BSCS",
+  "TOURISM",
+  "BSBA",
+  "BS PSYCHOLOGY"
+];
+
+const studentTypes = [
+  "New student",
+  "Transferee",
+  "Returning"
+];
 
 // ======================================
 // 6. ENROLLMENT API
@@ -101,13 +139,19 @@ app.post("/api/enrollments", (req, res) => {
     typeof data !== "object" ||
     Array.isArray(data)
   ) {
+
     console.log("[ERROR] Invalid request body");
 
     return res.status(400).json({
       status: "Error",
       message: "Invalid enrollment data"
     });
+
   }
+
+  // ====================================
+  // REQUIRED FIELDS
+  // ====================================
 
   const requiredFields = [
     "firstName",
@@ -121,69 +165,80 @@ app.post("/api/enrollments", (req, res) => {
   ];
 
   for (const field of requiredFields) {
+
     if (
       typeof data[field] !== "string" ||
       !data[field].trim()
     ) {
+
       console.log(
-        `[VALIDATION FAILED] Missing or invalid: ${field}`
+        `[VALIDATION ERROR] Invalid field: ${field}`
       );
 
       return res.status(400).json({
         status: "Error",
         message: `Missing or invalid field: ${field}`
       });
+
     }
+
   }
 
   // ====================================
-  // VALIDATE EDUCATION INFORMATION
+  // VALIDATE STUDENT TYPE
   // ====================================
 
-  const seniorHighGrades = [
-    "Grade 11",
-    "Grade 12"
-  ];
+  if (!studentTypes.includes(data.studentType)) {
 
-  const seniorHighStrands = [
-    "STEM",
-    "ICT",
-    "ABM",
-    "HUMMS",
-    "GAS",
-    "TOURISM OPERATION"
-  ];
+    return res.status(400).json({
+      status: "Error",
+      message: "Invalid student type"
+    });
 
-  const collegePrograms = [
-    "BSIT",
-    "BSCS",
-    "TOURISM",
-    "BSBA",
-    "BS PSYCHOLOGY"
-  ];
+  }
+
+  // ====================================
+  // VALIDATE EDUCATION LEVEL
+  // ====================================
 
   if (data.educationLevel === "Senior High School") {
-    if (
-      !seniorHighGrades.includes(data.gradeLevel) ||
-      !seniorHighStrands.includes(data.strand)
-    ) {
+
+    if (!seniorHighGrades.includes(data.gradeLevel)) {
+
       return res.status(400).json({
         status: "Error",
-        message: "Invalid grade level or strand"
+        message: "Invalid grade level"
       });
+
     }
+
+    if (!seniorHighStrands.includes(data.strand)) {
+
+      return res.status(400).json({
+        status: "Error",
+        message: "Invalid strand"
+      });
+
+    }
+
   } else if (data.educationLevel === "College") {
+
     if (!collegePrograms.includes(data.program)) {
+
       return res.status(400).json({
         status: "Error",
         message: "Invalid college program"
       });
+
     }
+
   } else {
+
     return res.status(400).json({
       status: "Error",
       message: "Invalid education level"
     });
+
   }
 
   // ====================================
@@ -192,51 +247,125 @@ app.post("/api/enrollments", (req, res) => {
 
   const referenceCode = referenceGenerator.generate();
 
+  const dateReceived = new Date().toISOString();
+
   // ====================================
   // LOG ENROLLMENT DETAILS
   // ====================================
 
-  // Safe operational information for Render Logs.
-  // Do not include real student names, contact
-  // details, or free-text notes in production logs.
+  // Full identifying information is logged
+  // ONLY when explicitly enabled for
+  // fictional test submissions.
 
-  const enrollmentLog = {
-    event: "ENROLLMENT_RECEIVED",
-    timestamp: new Date().toISOString(),
+  const fullTestLogging =
+    process.env.LOG_FULL_TEST_DATA === "true";
 
-    referenceCode,
+  // Prevent newline/control-character log injection.
+  const display = (value) => {
 
-    educationLevel: data.educationLevel,
-    gradeLevel: data.gradeLevel || null,
-    strand: data.strand || null,
-    program: data.program || null,
-    studentType: data.studentType,
+    if (value === null || value === undefined || value === "") {
+      return "N/A";
+    }
 
-    visitDate: data.visitDate,
-    timeSlot: data.timeSlot,
+    return String(value)
+      .replace(/[\x00-\x1f\x7f]/g, " ")
+      .slice(0, 300);
 
-    notesProvided:
-      typeof data.notes === "string" &&
-      data.notes.trim().length > 0
   };
 
-  console.log("====================================");
-  console.log("NEW CAMPUSPASS ENROLLMENT");
-  console.log("====================================");
+  console.log("");
+  console.log("============================================");
+  console.log("          CAMPUSPASS ENROLLMENT");
+  console.log("============================================");
 
-  console.log(JSON.stringify(enrollmentLog, null, 2));
+  console.log("Reference Code:", referenceCode);
+  console.log("Date Received:", dateReceived);
+  console.log("Request Status: ACCEPTED - DEMO ONLY");
 
-  // Optional: full form logs for fictional test data.
-  // NEVER enable while accepting real student data.
-  if (process.env.LOG_FULL_TEST_DATA === "true") {
-    console.log("TEST DATA ONLY - FULL FORM:");
-    console.log(JSON.stringify(data, null, 2));
+  if (fullTestLogging) {
+
+    console.log("");
+    console.log("----------- STUDENT DETAILS -----------");
+
+    console.log("First Name:", display(data.firstName));
+    console.log("Middle Name:", display(data.middleName));
+    console.log("Last Name:", display(data.lastName));
+
+    console.log("Email Address:", display(data.email));
+    console.log("Mobile Number:", display(data.mobile));
+
+  } else {
+
+    console.log("");
+    console.log("Student information: [REDACTED]");
+
   }
 
-  console.log("====================================");
+  console.log("");
+  console.log("---------- EDUCATION DETAILS ----------");
+
+  console.log(
+    "Education Level:",
+    display(data.educationLevel)
+  );
+
+  console.log(
+    "Grade Level:",
+    display(data.gradeLevel)
+  );
+
+  console.log(
+    "Strand:",
+    display(data.strand)
+  );
+
+  console.log(
+    "College Program:",
+    display(data.program)
+  );
+
+  console.log(
+    "Student Type:",
+    display(data.studentType)
+  );
+
+  console.log("");
+  console.log("---------- VISIT SCHEDULE ------------");
+
+  console.log(
+    "Visit Date:",
+    display(data.visitDate)
+  );
+
+  console.log(
+    "Time Slot:",
+    display(data.timeSlot)
+  );
+
+  if (fullTestLogging) {
+
+    console.log(
+      "Additional Notes:",
+      display(data.notes)
+    );
+
+  } else {
+
+    console.log(
+      "Additional Notes:",
+      data.notes ? "[REDACTED]" : "None"
+    );
+
+  }
+
+  console.log("");
+  console.log("============================================");
+  console.log("         ENROLLMENT REQUEST RECEIVED");
+  console.log("============================================");
+  console.log("");
 
   // ====================================
-  // RESPONSE TO FRONTEND
+  // SEND RESPONSE TO FRONTEND
   // ====================================
 
   return res.status(201).json({
@@ -248,20 +377,25 @@ app.post("/api/enrollments", (req, res) => {
 });
 
 // ======================================
-// 7. SERVE FRONTEND WEBSITE
+// 7. SERVE FRONTEND
 // ======================================
+
+// Makes the frontend available through
+// the same Render website as the backend.
 
 app.use(express.static(frontendPath));
 
 // ======================================
-// 8. NOT FOUND HANDLER FOR API ROUTES
+// 8. API NOT FOUND HANDLER
 // ======================================
 
 app.use("/api", (req, res) => {
+
   return res.status(404).json({
     status: "Error",
     message: "API endpoint not found"
   });
+
 });
 
 // ======================================
@@ -269,8 +403,15 @@ app.use("/api", (req, res) => {
 // ======================================
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log("====================================");
-  console.log("CAMPUSPASS SERVER STARTED");
+
+  console.log("");
+  console.log("============================================");
+  console.log("          CAMPUSPASS SERVER");
+  console.log("============================================");
+  console.log("Status: ONLINE");
   console.log(`Listening on port: ${PORT}`);
-  console.log("====================================");
+  console.log("Express API: READY");
+  console.log("============================================");
+  console.log("");
+
 });
