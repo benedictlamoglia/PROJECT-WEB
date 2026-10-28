@@ -28,6 +28,7 @@ const frontendPath = path.join(__dirname, "../frontend");
 
 // FRONTEND_ORIGIN = Your Vercel website URL
 const allowedOrigins = [
+  "https://webproject-ebon-nine.vercel.app",
   process.env.FRONTEND_ORIGIN,
   "http://localhost:5500",
   "http://127.0.0.1:5500",
