@@ -1,5 +1,6 @@
 
 import express from "express";
+import cors from "cors";
 import "dotenv/config";
 
 import path from "node:path";
@@ -7,20 +8,38 @@ import { fileURLToPath } from "node:url";
 
 import ReferenceCodeGenerator from "./utils/referenceCodeGenerator.js";
 
-// Initialize Express
-const app = express();
+// ======================================
+// INITIALIZE EXPRESS
+// ======================================
 
+const app = express();
 const PORT = process.env.PORT || 1000;
 
-// Reference Code Generator
 const referenceGenerator = new ReferenceCodeGenerator();
 
-// Get current directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Frontend directory
 const frontendPath = path.join(__dirname, "../frontend");
+
+// ======================================
+// CORS CONFIGURATION
+// ======================================
+
+// FRONTEND_ORIGIN = Your Vercel website URL
+const allowedOrigins = [
+  process.env.FRONTEND_ORIGIN,
+  "http://localhost:5500",
+  "http://127.0.0.1:5500",
+  "http://localhost:1000",
+  "http://localhost:3000"
+].filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
 
 // ======================================
 // MIDDLEWARE
@@ -28,7 +47,7 @@ const frontendPath = path.join(__dirname, "../frontend");
 
 app.use(express.json({ limit: "20kb" }));
 
-// Log every HTTP request
+// Request logging
 app.use((req, res, next) => {
 
   const start = Date.now();
@@ -52,12 +71,12 @@ app.use((req, res, next) => {
 });
 
 // ======================================
-// API HEALTH CHECK
+// HEALTH CHECK
 // ======================================
 
 app.get("/api/health", (req, res) => {
 
-  res.status(200).json({
+  return res.status(200).json({
     status: "online",
     message: "CampusPass API is running!"
   });
@@ -72,14 +91,17 @@ app.post("/api/enrollments", (req, res) => {
 
   const data = req.body;
 
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
+  if (
+    !data ||
+    typeof data !== "object" ||
+    Array.isArray(data)
+  ) {
     return res.status(400).json({
       status: "Error",
       message: "Invalid enrollment data"
     });
   }
 
-  // Basic validation
   const requiredFields = [
     "firstName",
     "lastName",
@@ -111,7 +133,6 @@ app.post("/api/enrollments", (req, res) => {
   console.log("Enrollment request received");
   console.log(`Generated reference: ${referenceCode}`);
 
-  // Return response to frontend
   return res.status(201).json({
     status: "Success",
     message: "Enrollment request received (demo only; not saved)",
