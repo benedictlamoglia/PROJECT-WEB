@@ -1,7 +1,7 @@
 
 const APP_CONFIG = Object.freeze({
   totalSteps: 3,
-  apiUrl: "/api/enrollments",
+  apiUrl: "https://project-web-1-qq6z.onrender.com/api/enrollments",
   seniorHighGrades: ["Grade 11", "Grade 12"],
   seniorHighStrands: [
     "STEM", "ICT", "ABM",
