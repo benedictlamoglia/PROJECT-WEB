@@ -1,7 +1,7 @@
 
 const APP_CONFIG = Object.freeze({
   totalSteps: 3,
-  apiUrl: "https://project-web-1-qq6z.onrender.com/api/enrollments",
+  apiUrl: "/api/enrollments",
   seniorHighGrades: ["Grade 11", "Grade 12"],
   seniorHighStrands: [
     "STEM", "ICT", "ABM",
@@ -501,7 +501,7 @@ class EnrollmentWizard {
     event.preventDefault();
 
     if (
-      this.isSubmitting ||
+      this.isSubmitting ||  
       this.currentStep !== APP_CONFIG.totalSteps
     ) {
       return;
