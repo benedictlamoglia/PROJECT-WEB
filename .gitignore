@@ -1,12 +1,12 @@
-# Dependencies
+
 node_modules/
 
-# Environment variables (Supabase credentials)
 .env
 .env.*
+**/.env
+**/.env.*
 
-# Logs
-*.log
-
-# Keep example environment files
 !.env.example
+!**/.env.example
+
+*.log

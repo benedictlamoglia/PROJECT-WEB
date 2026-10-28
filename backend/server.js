@@ -1,44 +1,140 @@
 
 import express from "express";
-import cors from "cors";
 import "dotenv/config";
+
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import ReferenceCodeGenerator from "./utils/referenceCodeGenerator.js";
 
-const referenceGenerator =
-  new ReferenceCodeGenerator();
-
+// Initialize Express
 const app = express();
-const PORT = 1000;
 
-app.use(cors());
-app.use(express.json());
+const PORT = process.env.PORT || 1000;
 
-app.get("/", (req, res) => {
-  res.json({
-    message: "School Enrollment API is running!"
+// Reference Code Generator
+const referenceGenerator = new ReferenceCodeGenerator();
+
+// Get current directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Frontend directory
+const frontendPath = path.join(__dirname, "../frontend");
+
+// ======================================
+// MIDDLEWARE
+// ======================================
+
+app.use(express.json({ limit: "20kb" }));
+
+// Log every HTTP request
+app.use((req, res, next) => {
+
+  const start = Date.now();
+
+  res.on("finish", () => {
+
+    const duration = Date.now() - start;
+
+    console.log(
+      `[REQUEST] ${req.method} ${req.originalUrl}`
+    );
+
+    console.log(
+      `[RESPONSE] Status: ${res.statusCode} | ${duration}ms`
+    );
+
   });
 
-  console.log("endpoint is being used");
+  next();
+
 });
 
-app.post("/api/enrollments", (req,res ) => {
-  console.log("Enrollement recieved")
+// ======================================
+// API HEALTH CHECK
+// ======================================
 
-  console.log(req.body);
+app.get("/api/health", (req, res) => {
 
-    const referenceCode =
-    referenceGenerator.generate();
+  res.status(200).json({
+    status: "online",
+    message: "CampusPass API is running!"
+  });
 
-    console.log(`Reference code : ${referenceCode}`);
+});
 
-  res.status(201).json({
+// ======================================
+// ENROLLMENT API
+// ======================================
+
+app.post("/api/enrollments", (req, res) => {
+
+  const data = req.body;
+
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return res.status(400).json({
+      status: "Error",
+      message: "Invalid enrollment data"
+    });
+  }
+
+  // Basic validation
+  const requiredFields = [
+    "firstName",
+    "lastName",
+    "email",
+    "mobile",
+    "educationLevel",
+    "studentType",
+    "visitDate",
+    "timeSlot"
+  ];
+
+  for (const field of requiredFields) {
+
+    if (
+      typeof data[field] !== "string" ||
+      !data[field].trim()
+    ) {
+      return res.status(400).json({
+        status: "Error",
+        message: `Missing or invalid field: ${field}`
+      });
+    }
+
+  }
+
+  // Generate reference code
+  const referenceCode = referenceGenerator.generate();
+
+  console.log("Enrollment request received");
+  console.log(`Generated reference: ${referenceCode}`);
+
+  // Return response to frontend
+  return res.status(201).json({
     status: "Success",
-    message: "enrollement data received successfully",
-    referenceCode: referenceCode,
-    data: req.body,
+    message: "Enrollment request received (demo only; not saved)",
+    referenceCode
   });
+
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+// ======================================
+// SERVE FRONTEND
+// ======================================
+
+app.use(express.static(frontendPath));
+
+// ======================================
+// START SERVER
+// ======================================
+
+app.listen(PORT, "0.0.0.0", () => {
+
+  console.log("================================");
+  console.log("CampusPass Server Started");
+  console.log(`Listening on port: ${PORT}`);
+  console.log("================================");
+
 });

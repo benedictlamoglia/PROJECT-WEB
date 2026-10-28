@@ -1,17 +1,22 @@
+
 {
   "name": "enrollement-sched-system",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "CampusPass Enrollment Scheduling System",
+  "main": "backend/server.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon backend/server.js",
     "start": "node backend/server.js"
   },
-  "keywords": [],
+  "keywords": [
+    "enrollment",
+    "scheduling",
+    "express",
+    "nodejs"
+  ],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^18.0.9",
