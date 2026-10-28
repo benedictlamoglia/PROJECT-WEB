@@ -9,10 +9,11 @@ import { fileURLToPath } from "node:url";
 import ReferenceCodeGenerator from "./utils/referenceCodeGenerator.js";
 
 // ======================================
-// INITIALIZE EXPRESS
+// 1. INITIALIZE EXPRESS
 // ======================================
 
 const app = express();
+
 const PORT = process.env.PORT || 1000;
 
 const referenceGenerator = new ReferenceCodeGenerator();
@@ -23,10 +24,32 @@ const __dirname = path.dirname(__filename);
 const frontendPath = path.join(__dirname, "../frontend");
 
 // ======================================
-// CORS CONFIGURATION
+// 2. REQUEST LOGGING MIDDLEWARE
 // ======================================
 
-// FRONTEND_ORIGIN = Your Vercel website URL
+app.use((req, res, next) => {
+  const start = Date.now();
+
+  console.log(
+    `[INCOMING] ${req.method} ${req.originalUrl}`
+  );
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+
+    console.log(
+      `[RESPONSE] ${req.method} ${req.originalUrl} | ` +
+      `Status: ${res.statusCode} | ${duration}ms`
+    );
+  });
+
+  next();
+});
+
+// ======================================
+// 3. CORS CONFIGURATION
+// ======================================
+
 const allowedOrigins = [
   "https://webproject-ebon-nine.vercel.app",
   process.env.FRONTEND_ORIGIN,
@@ -39,64 +62,47 @@ const allowedOrigins = [
 app.use(cors({
   origin: allowedOrigins,
   methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
+  allowedHeaders: ["Content-Type"],
+  optionsSuccessStatus: 204
 }));
 
 // ======================================
-// MIDDLEWARE
+// 4. JSON MIDDLEWARE
 // ======================================
 
 app.use(express.json({ limit: "20kb" }));
 
-// Request logging
-app.use((req, res, next) => {
-
-  const start = Date.now();
-
-  res.on("finish", () => {
-
-    const duration = Date.now() - start;
-
-    console.log(
-      `[REQUEST] ${req.method} ${req.originalUrl}`
-    );
-
-    console.log(
-      `[RESPONSE] Status: ${res.statusCode} | ${duration}ms`
-    );
-
-  });
-
-  next();
-
-});
-
 // ======================================
-// HEALTH CHECK
+// 5. HEALTH CHECK
 // ======================================
 
 app.get("/api/health", (req, res) => {
-
   return res.status(200).json({
     status: "online",
-    message: "CampusPass API is running!"
+    message: "CampusPass API is running!",
+    timestamp: new Date().toISOString()
   });
-
 });
 
 // ======================================
-// ENROLLMENT API
+// 6. ENROLLMENT API
 // ======================================
 
 app.post("/api/enrollments", (req, res) => {
 
   const data = req.body;
 
+  // ====================================
+  // VALIDATE REQUEST BODY
+  // ====================================
+
   if (
     !data ||
     typeof data !== "object" ||
     Array.isArray(data)
   ) {
+    console.log("[ERROR] Invalid request body");
+
     return res.status(400).json({
       status: "Error",
       message: "Invalid enrollment data"
@@ -115,24 +121,123 @@ app.post("/api/enrollments", (req, res) => {
   ];
 
   for (const field of requiredFields) {
-
     if (
       typeof data[field] !== "string" ||
       !data[field].trim()
     ) {
+      console.log(
+        `[VALIDATION FAILED] Missing or invalid: ${field}`
+      );
+
       return res.status(400).json({
         status: "Error",
         message: `Missing or invalid field: ${field}`
       });
     }
-
   }
 
-  // Generate reference code
+  // ====================================
+  // VALIDATE EDUCATION INFORMATION
+  // ====================================
+
+  const seniorHighGrades = [
+    "Grade 11",
+    "Grade 12"
+  ];
+
+  const seniorHighStrands = [
+    "STEM",
+    "ICT",
+    "ABM",
+    "HUMMS",
+    "GAS",
+    "TOURISM OPERATION"
+  ];
+
+  const collegePrograms = [
+    "BSIT",
+    "BSCS",
+    "TOURISM",
+    "BSBA",
+    "BS PSYCHOLOGY"
+  ];
+
+  if (data.educationLevel === "Senior High School") {
+    if (
+      !seniorHighGrades.includes(data.gradeLevel) ||
+      !seniorHighStrands.includes(data.strand)
+    ) {
+      return res.status(400).json({
+        status: "Error",
+        message: "Invalid grade level or strand"
+      });
+    }
+  } else if (data.educationLevel === "College") {
+    if (!collegePrograms.includes(data.program)) {
+      return res.status(400).json({
+        status: "Error",
+        message: "Invalid college program"
+      });
+    }
+  } else {
+    return res.status(400).json({
+      status: "Error",
+      message: "Invalid education level"
+    });
+  }
+
+  // ====================================
+  // GENERATE REFERENCE CODE
+  // ====================================
+
   const referenceCode = referenceGenerator.generate();
 
-  console.log("Enrollment request received");
-  console.log(`Generated reference: ${referenceCode}`);
+  // ====================================
+  // LOG ENROLLMENT DETAILS
+  // ====================================
+
+  // Safe operational information for Render Logs.
+  // Do not include real student names, contact
+  // details, or free-text notes in production logs.
+
+  const enrollmentLog = {
+    event: "ENROLLMENT_RECEIVED",
+    timestamp: new Date().toISOString(),
+
+    referenceCode,
+
+    educationLevel: data.educationLevel,
+    gradeLevel: data.gradeLevel || null,
+    strand: data.strand || null,
+    program: data.program || null,
+    studentType: data.studentType,
+
+    visitDate: data.visitDate,
+    timeSlot: data.timeSlot,
+
+    notesProvided:
+      typeof data.notes === "string" &&
+      data.notes.trim().length > 0
+  };
+
+  console.log("====================================");
+  console.log("NEW CAMPUSPASS ENROLLMENT");
+  console.log("====================================");
+
+  console.log(JSON.stringify(enrollmentLog, null, 2));
+
+  // Optional: full form logs for fictional test data.
+  // NEVER enable while accepting real student data.
+  if (process.env.LOG_FULL_TEST_DATA === "true") {
+    console.log("TEST DATA ONLY - FULL FORM:");
+    console.log(JSON.stringify(data, null, 2));
+  }
+
+  console.log("====================================");
+
+  // ====================================
+  // RESPONSE TO FRONTEND
+  // ====================================
 
   return res.status(201).json({
     status: "Success",
@@ -143,20 +248,29 @@ app.post("/api/enrollments", (req, res) => {
 });
 
 // ======================================
-// SERVE FRONTEND
+// 7. SERVE FRONTEND WEBSITE
 // ======================================
 
 app.use(express.static(frontendPath));
 
 // ======================================
-// START SERVER
+// 8. NOT FOUND HANDLER FOR API ROUTES
+// ======================================
+
+app.use("/api", (req, res) => {
+  return res.status(404).json({
+    status: "Error",
+    message: "API endpoint not found"
+  });
+});
+
+// ======================================
+// 9. START EXPRESS SERVER
 // ======================================
 
 app.listen(PORT, "0.0.0.0", () => {
-
-  console.log("================================");
-  console.log("CampusPass Server Started");
+  console.log("====================================");
+  console.log("CAMPUSPASS SERVER STARTED");
   console.log(`Listening on port: ${PORT}`);
-  console.log("================================");
-
+  console.log("====================================");
 });
