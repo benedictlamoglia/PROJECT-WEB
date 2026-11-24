@@ -1,4 +1,3 @@
-
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
@@ -7,10 +6,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import ReferenceCodeGenerator from "./utils/referenceCodeGenerator.js";
-
-// ======================================
-// 1. INITIALIZE EXPRESS
-// ======================================
 
 const app = express();
 
@@ -38,7 +33,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: allowedOrigins,
-  methods: ["GET", "POST"],
+  methods: ["GET", "POST", "PATCH"],
   allowedHeaders: ["Content-Type"],
   optionsSuccessStatus: 204
 }));
@@ -121,6 +116,12 @@ const studentTypes = [
   "Transferee",
   "Returning"
 ];
+
+// ======================================
+// 5B. IN-MEMORY ENROLLMENT STORAGE (DEMO)
+// ======================================
+
+const enrollments = [];
 
 // ======================================
 // 6. ENROLLMENT API
@@ -364,20 +365,114 @@ app.post("/api/enrollments", (req, res) => {
   console.log("============================================");
   console.log("");
 
+  const enrollmentRecord = {
+    referenceCode,
+    dateReceived,
+    checked: false,
+    firstName: data.firstName,
+    middleName: data.middleName || null,
+    lastName: data.lastName,
+    email: data.email,
+    mobile: data.mobile,
+    educationLevel: data.educationLevel,
+    gradeLevel: data.gradeLevel || null,
+    strand: data.strand || null,
+    program: data.program || null,
+    studentType: data.studentType,
+    visitDate: data.visitDate,
+    timeSlot: data.timeSlot,
+    notes: data.notes || null
+  };
+
+  enrollments.unshift(enrollmentRecord);
+
   // ====================================
   // SEND RESPONSE TO FRONTEND
   // ====================================
 
   return res.status(201).json({
     status: "Success",
-    message: "Enrollment request received (demo only; not saved)",
+    message: "Enrollment request received (demo only; stored in memory for this server session)",
     referenceCode
   });
 
 });
 
 // ======================================
-// 7. SERVE FRONTEND
+// 6B. ADMIN ENROLLMENT ENDPOINTS
+// ======================================
+
+app.get("/api/enrollments", (req, res) => {
+  return res.status(200).json({
+    status: "Success",
+    enrollments
+  });
+});
+
+app.patch("/api/enrollments/:referenceCode/check", (req, res) => {
+  const { referenceCode } = req.params;
+  const enrollment = enrollments.find(
+    (item) => item.referenceCode === referenceCode
+  );
+
+  if (!enrollment) {
+    return res.status(404).json({
+      status: "Error",
+      message: "Enrollment not found"
+    });
+  }
+
+  const requestedChecked = req.body?.checked;
+  enrollment.checked =
+    typeof requestedChecked === "boolean"
+      ? requestedChecked
+      : !enrollment.checked;
+
+  return res.status(200).json({
+    status: "Success",
+    enrollment
+  });
+});
+
+// ======================================
+// 7. ADMIN API ENDPOINTS
+// ======================================
+
+// List all enrollments (demo only)
+app.get("/api/admin/enrollments", (req, res) => {
+
+  return res.status(200).json({
+    status: "Success",
+    data: enrollments
+  });
+
+});
+
+// Check enrollment status by reference code (demo only)
+app.get("/api/admin/enrollments/:referenceCode", (req, res) => {
+
+  const { referenceCode } = req.params;
+
+  const enrollment = enrollments.find(e => e.referenceCode === referenceCode);
+
+  if (!enrollment) {
+
+    return res.status(404).json({
+      status: "Error",
+      message: "Enrollment not found"
+    });
+
+  }
+
+  return res.status(200).json({
+    status: "Success",
+    data: enrollment
+  });
+
+});
+
+// ======================================
+// 8. SERVE FRONTEND
 // ======================================
 
 // Makes the frontend available through
@@ -385,9 +480,7 @@ app.post("/api/enrollments", (req, res) => {
 
 app.use(express.static(frontendPath));
 
-// ======================================
-// 8. API NOT FOUND HANDLER
-// ======================================
+
 
 app.use("/api", (req, res) => {
 
@@ -398,9 +491,7 @@ app.use("/api", (req, res) => {
 
 });
 
-// ======================================
-// 9. START EXPRESS SERVER
-// ======================================
+
 
 app.listen(PORT, "0.0.0.0", () => {
 

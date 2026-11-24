@@ -19,7 +19,7 @@ const APP_CONFIG = Object.freeze({
   ],
 });
 
-// STUDENT CLASS
+
 
 class Student {
   constructor(data) {
