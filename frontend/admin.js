@@ -1,6 +1,16 @@
 const API_URL = "/api/enrollments";
+const LOGIN_URL = "/api/admin/login";
+const TOKEN_KEY = "campuspass_admin_token";
 
 const elements = {
+  loginView: document.querySelector("#admin-login-view"),
+  dashboardView: document.querySelector("#admin-dashboard-view"),
+  loginForm: document.querySelector("#admin-login-form"),
+  loginButton: document.querySelector("#login-button"),
+  loginError: document.querySelector("#login-error"),
+  username: document.querySelector("#admin-username"),
+  password: document.querySelector("#admin-password"),
+  logoutButton: document.querySelector("#logout-button"),
   status: document.querySelector("#admin-status"),
   error: document.querySelector("#admin-error"),
   empty: document.querySelector("#admin-empty"),
@@ -11,6 +21,41 @@ const elements = {
   statChecked: document.querySelector("#stat-checked"),
   statPending: document.querySelector("#stat-pending"),
 };
+
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY) || "";
+}
+
+function setToken(token) {
+  if (token) localStorage.setItem(TOKEN_KEY, token);
+  else localStorage.removeItem(TOKEN_KEY);
+}
+
+function showLogin(message = "") {
+  elements.dashboardView.hidden = true;
+  elements.loginView.hidden = false;
+  elements.logoutButton.hidden = true;
+  if (message) {
+    elements.loginError.textContent = message;
+    elements.loginError.hidden = false;
+  }
+}
+
+function showDashboard() {
+  elements.loginView.hidden = true;
+  elements.dashboardView.hidden = false;
+  elements.logoutButton.hidden = false;
+}
+
+function showLoginError(message) {
+  elements.loginError.textContent = message;
+  elements.loginError.hidden = false;
+}
+
+function clearLoginError() {
+  elements.loginError.textContent = "";
+  elements.loginError.hidden = true;
+}
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -100,14 +145,30 @@ function createStatusBadge(checked) {
   return badge;
 }
 
+async function authFetch(url, options = {}) {
+  const token = getToken();
+  const headers = new Headers(options.headers || {});
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (options.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  headers.set("Accept", "application/json");
+
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401) {
+    setToken("");
+    throw new Error("UNAUTHORIZED");
+  }
+  return response;
+}
+
 async function toggleChecked(item, button) {
   clearError();
   button.disabled = true;
   const nextValue = !item.checked;
   try {
-    const response = await fetch(`${API_URL}/${encodeURIComponent(item.referenceCode)}/check`, {
+    const response = await authFetch(`${API_URL}/${encodeURIComponent(item.referenceCode)}/check`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ checked: nextValue }),
     });
     const result = await response.json();
@@ -117,6 +178,10 @@ async function toggleChecked(item, button) {
     await loadEnrollments();
   } catch (error) {
     console.error("Failed to update enrollment:", error);
+    if (error.message === "UNAUTHORIZED") {
+      showLogin("Your session expired. Please sign in again.");
+      return;
+    }
     showError(error.message || "Could not update enrollment status. Please try again.");
     button.disabled = false;
   }
@@ -168,23 +233,87 @@ async function loadEnrollments() {
   clearError();
   setLoading(true);
   try {
-    const response = await fetch(API_URL, { headers: { Accept: "application/json" } });
+    const response = await authFetch(API_URL);
     const result = await response.json();
     if (!response.ok) {
       throw new Error(result.message || "Failed to load enrollment requests.");
     }
+    showDashboard();
     renderEnrollments(Array.isArray(result.enrollments) ? result.enrollments : []);
   } catch (error) {
     console.error("Failed to load enrollments:", error);
+    if (error.message === "UNAUTHORIZED") {
+      showLogin(getToken() ? "Your session expired. Please sign in again." : "");
+      return;
+    }
+    showDashboard();
     elements.empty.hidden = true;
     elements.tableWrap.hidden = true;
     elements.status.textContent = "Unable to load enrollment requests.";
-    showError("Could not load student enrollment data. Make sure the server is running and try again.");
+    showError(error.message || "Could not load student enrollment data. Please check the server/database connection and try again.");
     updateStats([]);
   } finally {
     setLoading(false);
   }
 }
 
+async function handleLogin(event) {
+  event.preventDefault();
+  clearLoginError();
+
+  const username = elements.username.value.trim();
+  const password = elements.password.value;
+  if (!username || !password) {
+    showLoginError("Enter your admin username and password.");
+    return;
+  }
+
+  elements.loginButton.disabled = true;
+  elements.loginButton.textContent = "Signing in…";
+
+  try {
+    const response = await fetch(LOGIN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || "Login failed.");
+    }
+
+    setToken(result.token);
+    elements.password.value = "";
+    showDashboard();
+    await loadEnrollments();
+  } catch (error) {
+    console.error("Admin login failed:", error);
+    showLoginError(error.message || "Could not sign in. Please try again.");
+  } finally {
+    elements.loginButton.disabled = false;
+    elements.loginButton.innerHTML = 'Sign in <span aria-hidden="true">↗</span>';
+  }
+}
+
+function logout() {
+  setToken("");
+  clearError();
+  clearLoginError();
+  elements.password.value = "";
+  elements.tableBody.replaceChildren();
+  elements.empty.hidden = true;
+  elements.tableWrap.hidden = true;
+  elements.status.textContent = "Loading enrollment requests…";
+  updateStats([]);
+  showLogin();
+}
+
+elements.loginForm.addEventListener("submit", handleLogin);
 elements.refreshButton.addEventListener("click", loadEnrollments);
-loadEnrollments();
+elements.logoutButton.addEventListener("click", logout);
+
+if (getToken()) {
+  loadEnrollments();
+} else {
+  showLogin();
+}

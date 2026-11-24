@@ -31,80 +31,114 @@
       </a>
       <nav class="header-nav" aria-label="Admin navigation">
         <a class="text-nav" href="index.html">Enrollment form</a>
-        <a class="nav-cta" href="#dashboard">
-          View students <span aria-hidden="true">↘</span>
-        </a>
+        <button id="logout-button" class="button button-outline admin-logout-button" type="button" hidden>Log out</button>
       </nav>
     </div>
   </header>
 
   <main id="dashboard" class="admin-main">
-    <section class="admin-hero">
-      <div class="shell admin-hero-inner">
-        <div>
-          <span class="eyebrow">ADMIN / ENROLLMENT REVIEW</span>
-          <h1>Student <em>enrollment</em> requests</h1>
+    <section id="admin-login-view" class="admin-login-section">
+      <div class="shell">
+        <div class="admin-login-card">
+          <span class="eyebrow">ADMIN / SECURE ACCESS</span>
+          <h1>Admin <em>login</em></h1>
           <p class="admin-lead">
-            Review submitted enrollment details, confirm visit schedules, and mark requests as checked.
-            Records shown here are stored in memory for the current server session.
+            Sign in to review student enrollment requests stored in the database and mark them as checked.
+          </p>
+
+          <form id="admin-login-form" class="admin-login-form" novalidate>
+            <div class="field">
+              <label for="admin-username">Username <span class="required">*</span></label>
+              <input id="admin-username" name="username" type="text" autocomplete="username" required>
+            </div>
+            <div class="field">
+              <label for="admin-password">Password <span class="required">*</span></label>
+              <input id="admin-password" name="password" type="password" autocomplete="current-password" required>
+            </div>
+
+            <p id="login-error" class="form-error admin-error" role="alert" hidden></p>
+
+            <button id="login-button" class="button button-dark admin-login-submit" type="submit">
+              Sign in <span aria-hidden="true">↗</span>
+            </button>
+          </form>
+
+          <p class="admin-login-note">
+            Configure <code>ADMIN_USERNAME</code>, <code>ADMIN_PASSWORD</code>, and <code>ADMIN_TOKEN_SECRET</code> in your environment.
+            Connect <code>DATABASE_URL</code> to Supabase to persist enrollment records.
           </p>
         </div>
-        <div class="admin-stats" aria-label="Enrollment summary">
-          <article class="admin-stat-card">
-            <span>Total requests</span>
-            <strong id="stat-total">0</strong>
-          </article>
-          <article class="admin-stat-card">
-            <span>Checked</span>
-            <strong id="stat-checked">0</strong>
-          </article>
-          <article class="admin-stat-card">
-            <span>Pending</span>
-            <strong id="stat-pending">0</strong>
-          </article>
-        </div>
       </div>
     </section>
 
-    <section class="admin-content">
-      <div class="shell">
-        <div class="admin-toolbar">
+    <div id="admin-dashboard-view" hidden>
+      <section class="admin-hero">
+        <div class="shell admin-hero-inner">
           <div>
-            <h2>Student list &amp; details</h2>
-            <p id="admin-status" class="admin-status" aria-live="polite">Loading enrollment requests…</p>
+            <span class="eyebrow">ADMIN / ENROLLMENT REVIEW</span>
+            <h1>Student <em>enrollment</em> requests</h1>
+            <p class="admin-lead">
+              Review submitted enrollment details, confirm visit schedules, and mark requests as checked.
+              Records are loaded from the connected database (Supabase/Postgres).
+            </p>
           </div>
-          <button id="refresh-button" class="button button-outline" type="button">Refresh</button>
+          <div class="admin-stats" aria-label="Enrollment summary">
+            <article class="admin-stat-card">
+              <span>Total requests</span>
+              <strong id="stat-total">0</strong>
+            </article>
+            <article class="admin-stat-card">
+              <span>Checked</span>
+              <strong id="stat-checked">0</strong>
+            </article>
+            <article class="admin-stat-card">
+              <span>Pending</span>
+              <strong id="stat-pending">0</strong>
+            </article>
+          </div>
         </div>
+      </section>
 
-        <p id="admin-error" class="form-error admin-error" role="alert" hidden></p>
+      <section class="admin-content">
+        <div class="shell">
+          <div class="admin-toolbar">
+            <div>
+              <h2>Student list &amp; details</h2>
+              <p id="admin-status" class="admin-status" aria-live="polite">Loading enrollment requests…</p>
+            </div>
+            <button id="refresh-button" class="button button-outline" type="button">Refresh</button>
+          </div>
 
-        <div id="admin-empty" class="admin-empty" hidden>
-          <h3>No enrollment requests yet</h3>
-          <p>New submissions from the enrollment form will appear here for review.</p>
+          <p id="admin-error" class="form-error admin-error" role="alert" hidden></p>
+
+          <div id="admin-empty" class="admin-empty" hidden>
+            <h3>No enrollment requests yet</h3>
+            <p>New submissions from the enrollment form will appear here for review.</p>
+          </div>
+
+          <div class="admin-table-wrap" id="admin-table-wrap" hidden>
+            <table class="admin-table">
+              <caption class="sr-only">Submitted student enrollment requests</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Status</th>
+                  <th scope="col">Reference</th>
+                  <th scope="col">Received</th>
+                  <th scope="col">Student</th>
+                  <th scope="col">Contact</th>
+                  <th scope="col">Education</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Preferred visit</th>
+                  <th scope="col">Notes</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody id="enrollment-table-body"></tbody>
+            </table>
+          </div>
         </div>
-
-        <div class="admin-table-wrap" id="admin-table-wrap" hidden>
-          <table class="admin-table">
-            <caption class="sr-only">Submitted student enrollment requests</caption>
-            <thead>
-              <tr>
-                <th scope="col">Status</th>
-                <th scope="col">Reference</th>
-                <th scope="col">Received</th>
-                <th scope="col">Student</th>
-                <th scope="col">Contact</th>
-                <th scope="col">Education</th>
-                <th scope="col">Type</th>
-                <th scope="col">Preferred visit</th>
-                <th scope="col">Notes</th>
-                <th scope="col">Action</th>
-              </tr>
-            </thead>
-            <tbody id="enrollment-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
   </main>
 </body>
 </html>

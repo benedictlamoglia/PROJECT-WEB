@@ -6,6 +6,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import ReferenceCodeGenerator from "./utils/referenceCodeGenerator.js";
+import { initDatabase, isDatabaseConfigured, pool } from "./config/database.js";
+import {
+  createAdminToken,
+  requireAdminAuth,
+  validateAdminLogin,
+} from "./utils/adminAuth.js";
 
 const app = express();
 
@@ -34,7 +40,7 @@ const allowedOrigins = [
 app.use(cors({
   origin: allowedOrigins,
   methods: ["GET", "POST", "PATCH"],
-  allowedHeaders: ["Content-Type"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   optionsSuccessStatus: 204
 }));
 
@@ -80,7 +86,8 @@ app.get("/api/health", (req, res) => {
   return res.status(200).json({
     status: "online",
     message: "CampusPass API is running!",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    databaseConfigured: isDatabaseConfigured
   });
 
 });
@@ -117,17 +124,20 @@ const studentTypes = [
   "Returning"
 ];
 
-// ======================================
-// 5B. IN-MEMORY ENROLLMENT STORAGE (DEMO)
-// ======================================
-
-const enrollments = [];
+/*
+  DATABASE SEQUENCE GUIDE
+  -----------------------
+  Enrollment data is now stored in Postgres (Supabase).
+  - Configure DATABASE_URL in .env (local) and Render Environment (production).
+  - See backend/config/database.js for connection + table initialization.
+  - initDatabase() runs at startup and ensures the `enrollments` table exists.
+*/
 
 // ======================================
 // 6. ENROLLMENT API
 // ======================================
 
-app.post("/api/enrollments", (req, res) => {
+app.post("/api/enrollments", async (req, res) => {
 
   const data = req.body;
 
@@ -365,26 +375,54 @@ app.post("/api/enrollments", (req, res) => {
   console.log("============================================");
   console.log("");
 
-  const enrollmentRecord = {
+  /*
+    DATABASE INSERT SEQUENCE
+    ------------------------
+    1. Request is validated above (same rules as before).
+    2. A reference code and timestamp are generated.
+    3. The enrollment is inserted into the `enrollments` table in Supabase/Postgres.
+    4. The admin dashboard reads/updates rows from the same table via protected endpoints.
+  */
+  const insertQuery = `
+    insert into enrollments (
+      reference_code, date_received, checked,
+      first_name, middle_name, last_name, email, mobile,
+      education_level, grade_level, strand, program, student_type,
+      visit_date, time_slot, notes
+    ) values (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
+    )
+    returning reference_code
+  `;
+
+  const values = [
     referenceCode,
     dateReceived,
-    checked: false,
-    firstName: data.firstName,
-    middleName: data.middleName || null,
-    lastName: data.lastName,
-    email: data.email,
-    mobile: data.mobile,
-    educationLevel: data.educationLevel,
-    gradeLevel: data.gradeLevel || null,
-    strand: data.strand || null,
-    program: data.program || null,
-    studentType: data.studentType,
-    visitDate: data.visitDate,
-    timeSlot: data.timeSlot,
-    notes: data.notes || null
-  };
+    false,
+    data.firstName,
+    data.middleName || null,
+    data.lastName,
+    data.email,
+    data.mobile,
+    data.educationLevel,
+    data.gradeLevel || null,
+    data.strand || null,
+    data.program || null,
+    data.studentType,
+    data.visitDate,
+    data.timeSlot,
+    data.notes || null
+  ];
 
-  enrollments.unshift(enrollmentRecord);
+  try {
+    await pool.query(insertQuery, values);
+  } catch (error) {
+    console.error("[DATABASE ERROR] Failed to insert enrollment:", error);
+    return res.status(500).json({
+      status: "Error",
+      message: "Could not save enrollment to the database. Please check server/database configuration."
+    });
+  }
 
   // ====================================
   // SEND RESPONSE TO FRONTEND
@@ -392,95 +430,176 @@ app.post("/api/enrollments", (req, res) => {
 
   return res.status(201).json({
     status: "Success",
-    message: "Enrollment request received (demo only; stored in memory for this server session)",
+    message: "Enrollment request saved successfully.",
     referenceCode
   });
 
 });
 
 // ======================================
-// 6B. ADMIN ENROLLMENT ENDPOINTS
+// 6B. ADMIN AUTH & PROTECTED ENROLLMENT ENDPOINTS
 // ======================================
 
-app.get("/api/enrollments", (req, res) => {
-  return res.status(200).json({
-    status: "Success",
-    enrollments
-  });
-});
+// Admin login: validates credentials from environment variables and returns a signed token.
+// Frontend stores token and sends: Authorization: Bearer <token>
+app.post("/api/admin/login", (req, res) => {
+  const username = String(req.body?.username ?? "").trim();
+  const password = String(req.body?.password ?? "");
 
-app.patch("/api/enrollments/:referenceCode/check", (req, res) => {
-  const { referenceCode } = req.params;
-  const enrollment = enrollments.find(
-    (item) => item.referenceCode === referenceCode
-  );
-
-  if (!enrollment) {
-    return res.status(404).json({
+  if (!username || !password) {
+    return res.status(400).json({
       status: "Error",
-      message: "Enrollment not found"
+      message: "Username and password are required."
     });
   }
 
+  try {
+    const valid = validateAdminLogin(username, password);
+    if (!valid) {
+      return res.status(401).json({
+        status: "Error",
+        message: "Invalid admin username or password."
+      });
+    }
+
+    const token = createAdminToken(username);
+    return res.status(200).json({
+      status: "Success",
+      token,
+      admin: { username }
+    });
+  } catch (error) {
+    console.error("[AUTH ERROR] Admin login failed:", error);
+    return res.status(500).json({
+      status: "Error",
+      message: error.message || "Admin login is not configured correctly."
+    });
+  }
+});
+
+const ENROLLMENT_SELECT_SQL = `
+  select
+    reference_code as "referenceCode",
+    date_received as "dateReceived",
+    checked,
+    first_name as "firstName",
+    middle_name as "middleName",
+    last_name as "lastName",
+    email,
+    mobile,
+    education_level as "educationLevel",
+    grade_level as "gradeLevel",
+    strand,
+    program,
+    student_type as "studentType",
+    to_char(visit_date, 'YYYY-MM-DD') as "visitDate",
+    time_slot as "timeSlot",
+    notes
+  from enrollments
+`;
+
+// List all enrollments for admin dashboard (protected)
+app.get("/api/enrollments", requireAdminAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `${ENROLLMENT_SELECT_SQL} order by date_received desc`
+    );
+
+    return res.status(200).json({
+      status: "Success",
+      enrollments: rows
+    });
+  } catch (error) {
+    console.error("[DATABASE ERROR] Failed to fetch enrollments:", error);
+    return res.status(500).json({
+      status: "Error",
+      message: "Could not load enrollments from the database."
+    });
+  }
+});
+
+// Mark an enrollment as checked/pending (protected)
+app.patch("/api/enrollments/:referenceCode/check", requireAdminAuth, async (req, res) => {
+  const { referenceCode } = req.params;
   const requestedChecked = req.body?.checked;
-  enrollment.checked =
-    typeof requestedChecked === "boolean"
-      ? requestedChecked
-      : !enrollment.checked;
 
-  return res.status(200).json({
-    status: "Success",
-    enrollment
-  });
-});
+  const useExplicitValue = typeof requestedChecked === "boolean";
+  const query = useExplicitValue
+    ? `update enrollments
+       set checked = $2
+       where reference_code = $1
+       returning
+         reference_code as "referenceCode",
+         date_received as "dateReceived",
+         checked,
+         first_name as "firstName",
+         middle_name as "middleName",
+         last_name as "lastName",
+         email,
+         mobile,
+         education_level as "educationLevel",
+         grade_level as "gradeLevel",
+         strand,
+         program,
+         student_type as "studentType",
+         to_char(visit_date, 'YYYY-MM-DD') as "visitDate",
+         time_slot as "timeSlot",
+         notes`
+    : `update enrollments
+       set checked = not checked
+       where reference_code = $1
+       returning
+         reference_code as "referenceCode",
+         date_received as "dateReceived",
+         checked,
+         first_name as "firstName",
+         middle_name as "middleName",
+         last_name as "lastName",
+         email,
+         mobile,
+         education_level as "educationLevel",
+         grade_level as "gradeLevel",
+         strand,
+         program,
+         student_type as "studentType",
+         to_char(visit_date, 'YYYY-MM-DD') as "visitDate",
+         time_slot as "timeSlot",
+         notes`;
 
-// ======================================
-// 7. ADMIN API ENDPOINTS
-// ======================================
+  const params = useExplicitValue ? [referenceCode, requestedChecked] : [referenceCode];
 
-// List all enrollments (demo only)
-app.get("/api/admin/enrollments", (req, res) => {
+  try {
+    const { rows } = await pool.query(query, params);
+    const enrollment = rows[0];
 
-  return res.status(200).json({
-    status: "Success",
-    data: enrollments
-  });
+    if (!enrollment) {
+      return res.status(404).json({
+        status: "Error",
+        message: "Enrollment not found"
+      });
+    }
 
-});
-
-// Check enrollment status by reference code (demo only)
-app.get("/api/admin/enrollments/:referenceCode", (req, res) => {
-
-  const { referenceCode } = req.params;
-
-  const enrollment = enrollments.find(e => e.referenceCode === referenceCode);
-
-  if (!enrollment) {
-
-    return res.status(404).json({
-      status: "Error",
-      message: "Enrollment not found"
+    return res.status(200).json({
+      status: "Success",
+      enrollment
     });
-
+  } catch (error) {
+    console.error("[DATABASE ERROR] Failed to update enrollment check status:", error);
+    return res.status(500).json({
+      status: "Error",
+      message: "Could not update enrollment status in the database."
+    });
   }
-
-  return res.status(200).json({
-    status: "Success",
-    data: enrollment
-  });
-
 });
 
 // ======================================
-// 8. SERVE FRONTEND
+// 7. SERVE FRONTEND
 // ======================================
 
 // Makes the frontend available through
 // the same Render website as the backend.
 
 app.use(express.static(frontendPath));
-
-
 
 app.use("/api", (req, res) => {
 
@@ -491,18 +610,56 @@ app.use("/api", (req, res) => {
 
 });
 
+// ======================================
+// 8. START SERVER (after DB init)
+// ======================================
 
+async function startServer() {
+  /*
+    SUPABASE INTEGRATION SEQUENCE
+    -----------------------------
+    1. Set DATABASE_URL (Supabase connection string URI) in .env / Render env.
+    2. Set ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_TOKEN_SECRET for admin login.
+    3. Start server -> initDatabase() verifies connection and creates `enrollments` table if missing.
+    4. Submit enrollment form -> row inserted in Supabase.
+    5. Login at /admin.html -> view/check records from Supabase.
+  */
+  if (!isDatabaseConfigured) {
+    console.error("");
+    console.error("============================================");
+    console.error("DATABASE CONFIGURATION REQUIRED");
+    console.error("============================================");
+    console.error("DATABASE_URL is missing.");
+    console.error("Add your Supabase Postgres connection string to .env (local)");
+    console.error("or Render Environment variables, then restart the server.");
+    console.error("See backend/config/database.js and .env for setup comments.");
+    console.error("============================================");
+    console.error("");
+    process.exit(1);
+  }
 
-app.listen(PORT, "0.0.0.0", () => {
+  try {
+    await initDatabase();
+    console.log("[DATABASE] Connected and initialized successfully.");
+  } catch (error) {
+    console.error("[DATABASE] Failed to connect/initialize:", error);
+    process.exit(1);
+  }
 
-  console.log("");
-  console.log("============================================");
-  console.log("          CAMPUSPASS SERVER");
-  console.log("============================================");
-  console.log("Status: ONLINE");
-  console.log(`Listening on port: ${PORT}`);
-  console.log("Express API: READY");
-  console.log("============================================");
-  console.log("");
+  app.listen(PORT, "0.0.0.0", () => {
 
-});
+    console.log("");
+    console.log("============================================");
+    console.log("          CAMPUSPASS SERVER");
+    console.log("============================================");
+    console.log("Status: ONLINE");
+    console.log(`Listening on port: ${PORT}`);
+    console.log("Express API: READY");
+    console.log("Database: CONNECTED");
+    console.log("============================================");
+    console.log("");
+
+  });
+}
+
+startServer();
